@@ -7,16 +7,17 @@ CURRENT_ROLE = None  # NUEVA VARIABLE: Guardará si es 'user' o 'admin'
 
 def menu():
     role_str = f" (Rol: {CURRENT_ROLE})" if CURRENT_ROLE else " (Sin login)"
-    print(f"\n--- COLLECTOR VAULT{role_str} ---")
+    print(f"\n--- Fothel Card's{role_str} ---")
     print("1. Registro")
     print("2. Login")
     print("3. Ver Catálogo (Público)")
     print("4. Comprar Producto (Usuario)")
     print("5. Ver Mis Pedidos (Usuario)")
-    print("6. Añadir Producto (Solo Admin)")
-    print("7. Editar Producto (Solo Admin)")
-    print("8. Borrar Producto (Solo Admin)")
-    print("9. Salir")
+    print("6. Ver Mi Perfil (Usuario)")  # <--- NUEVA OPCIÓN
+    print("7. Añadir Producto (Solo Admin)") # Re-numeramos
+    print("8. Editar Producto (Solo Admin)")
+    print("9. Borrar Producto (Solo Admin)")
+    print("0. Salir") # He cambiado el 9 por 0 para que sea más estándar, o usa 10.
 
 def register():
     print("\n--- REGISTRO ---")
@@ -171,6 +172,30 @@ def ver_pedidos():
     except Exception as e:
         print(f">> ERROR: {e}")
 
+
+def ver_perfil():
+    if not TOKEN:
+        print(">> ERROR: Inicia sesión primero.")
+        return
+
+    headers = {"Authorization": f"Bearer {TOKEN}"}
+    try:
+        res = requests.get(f"{BASE_URL}/profile", headers=headers)
+        
+        if res.status_code == 200:
+            data = res.json()
+            print("\n┌──────────────────────────────┐")
+            print("│         MI PERFIL            │")
+            print("├──────────────────────────────┤")
+            print(f"│ Usuario: {data['username'].ljust(19)} │")
+            print(f"│ Rol:     {data['role'].ljust(19)} │")
+            print(f"│ ID:      {data['id'].ljust(19)} │")
+            print("└──────────────────────────────┘")
+        else:
+            print(f">> Error: {res.json().get('msg')}")
+    except Exception as e:
+        print(f">> ERROR DE CONEXIÓN: {e}")
+
 if __name__ == "__main__":
     while True:
         menu()
@@ -180,7 +205,8 @@ if __name__ == "__main__":
         elif opc == '3': ver_catalogo()
         elif opc == '4': comprar_producto()
         elif opc == '5': ver_pedidos()
-        elif opc == '6': add_product()
-        elif opc == '7': edit_product()
-        elif opc == '8': delete_product()
-        elif opc == '9': sys.exit()
+        elif opc == '6': ver_perfil()        
+        elif opc == '7': add_product()       
+        elif opc == '8': edit_product()
+        elif opc == '9': delete_product()
+        elif opc == '0': sys.exit()
