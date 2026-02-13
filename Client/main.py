@@ -40,7 +40,7 @@ def sesion():
     contr = input("Contraseña: ")
     
     try:
-        res = requests.post(f"{BASE_URL}/sesio", json={"nombre": usuario, "contraseña": contr})
+        res = requests.post(f"{BASE_URL}/sesion", json={"nombre": usuario, "contraseña": contr})
         
         if res.status_code == 200:
             data = res.json()

@@ -80,7 +80,7 @@ def sesion():
         # [CAMBIO] Usamos check_contraseña_hash para comparar
         # Primero verificamos si 'user' existe, luego la contraseña
         if user and check_password_hash(user['contraseña'], data['contraseña']):
-            access_token = create_access_token(identity={"nombre": user['nombre'], "rol": user['rol']})
+            access_token = create_access_token(identity=user['nombre'])
             return jsonify({'access_token': access_token, 'rol': user['rol']}), 200
             
         return jsonify({"msg": "Credenciales incorrectas"}), 401
@@ -121,7 +121,7 @@ def añadir_producto():
             "type": "object",
             "properties": {
                 "nombre": { "type": "string", "minLength": 1 },
-                "tipo": { "enum": ["Carta", "Figura", "Funko"] },
+                "tipo": { "enum": ["Carta", "Figura", "Funko", "carta", "figura","Funko"] },
                 "precio": { "type": "number", "exclusiveMinimum": 0 },
                 "stock": { "type": "integer", "minimum": 0 }
             },
