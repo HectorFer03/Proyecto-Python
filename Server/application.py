@@ -4,7 +4,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from bson.objectid import ObjectId
 from jsonschema import validate, ValidationError
 # [NUEVO] Importamos las funciones de seguridad de Werkzeug
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import generate_contraseña_hash, check_contraseña_hash
 
 app = Flask(__name__)
 
@@ -21,8 +21,8 @@ jwt = JWTManager(app)
 # RUTAS DE AUTENTICACIÓN MODIFICADAS
 # ==========================================
 
-@app.route('/register', methods=['POST'])
-def register():
+@app.route('/registro', methods=['POST'])
+def registro():
     try:
         data = request.get_json()
         
@@ -30,25 +30,25 @@ def register():
         schema = {
             "type": "object",
             "properties": {
-                "username": { "type": "string", "minLength": 3 },
-                "password": { "type": "string", "minLength": 4 },
-                "role": { "enum": ["user", "admin"] }
+                "nombre": { "type": "string", "minLength": 3 },
+                "contraseña": { "type": "string", "minLength": 4 },
+                "rol": { "enum": ["user", "admin"] }
             },
-            "required": ["username", "password", "role"],
+            "required": ["nombre", "contraseña", "rol"],
             "additionalProperties": False
         }
         validate(instance=data, schema=schema)
 
-        if mongo.db.users.find_one({"username": data['username']}):
+        if mongo.db.users.find_one({"nombre": data['nombre']}):
             return jsonify({"msg": "El usuario ya existe"}), 400
         
         # [CAMBIO] Hasheamos la contraseña antes de guardar
-        hashed_password = generate_password_hash(data['password'])
+        hashed_contraseña = generate_contraseña_hash(data['contraseña'])
 
         mongo.db.users.insert_one({
-            "username": data['username'],
-            "password": hashed_password,  # Guardamos el hash, NO el texto plano
-            "role": data['role']
+            "nombre": data['nombre'],
+            "contraseña": hashed_contraseña,  # Guardamos el hash, NO el texto plano
+            "rol": data['rol']
         })
         
         return jsonify({"msg": "Usuario registrado correctamente"}), 201
@@ -58,8 +58,8 @@ def register():
     except Exception:
         return jsonify({"msg": "Error en el servidor"}), 500
 
-@app.route('/login', methods=['POST'])
-def login():
+@app.route('/sesion', methods=['POST'])
+def sesion():
     try:
         data = request.get_json()
         
@@ -67,21 +67,21 @@ def login():
         schema = {
             "type": "object",
             "properties": {
-                "username": { "type": "string" },
-                "password": { "type": "string" }
+                "nombre": { "type": "string" },
+                "contraseña": { "type": "string" }
             },
-            "required": ["username", "password"],
+            "required": ["nombre", "contraseña"],
             "additionalProperties": False
         }
         validate(instance=data, schema=schema)
 
-        user = mongo.db.users.find_one({"username": data['username']})
+        user = mongo.db.users.find_one({"nombre": data['nombre']})
         
-        # [CAMBIO] Usamos check_password_hash para comparar
+        # [CAMBIO] Usamos check_contraseña_hash para comparar
         # Primero verificamos si 'user' existe, luego la contraseña
-        if user and check_password_hash(user['password'], data['password']):
-            access_token = create_access_token(identity={"username": user['username'], "role": user['role']})
-            return jsonify({'access_token': access_token, 'role': user['role']}), 200
+        if user and check_contraseña_hash(user['contraseña'], data['contraseña']):
+            access_token = create_access_token(identity={"nombre": user['nombre'], "rol": user['rol']})
+            return jsonify({'access_token': access_token, 'rol': user['rol']}), 200
             
         return jsonify({"msg": "Credenciales incorrectas"}), 401
 
@@ -93,24 +93,24 @@ def login():
 # RUTAS DE PRODUCTOS (CRUD)
 # ==========================================
 
-@app.route('/products', methods=['GET'])
-def get_products():
-    products = []
-    for doc in mongo.db.products.find():
-        products.append({
+@app.route('/productos', methods=['GET'])
+def ver_productos():
+    productos = []
+    for doc in mongo.db.productos.find():
+        productos.append({
             "_id": str(doc['_id']),
             "nombre": doc['nombre'],
             "tipo": doc['tipo'],
             "precio": doc['precio'],
             "stock": doc['stock']
         })
-    return jsonify(products), 200
+    return jsonify(productos), 200
 
-@app.route('/products', methods=['POST'])
+@app.route('/productos', methods=['POST'])
 @jwt_required()
-def add_product():
+def añadir_producto():
     current_user = get_jwt_identity()
-    if current_user['role'] != 'admin':
+    if current_user['rol'] != 'admin':
         return jsonify({"msg": "Acceso denegado"}), 403
 
     try:
@@ -139,11 +139,11 @@ def add_product():
     except Exception as e:
         return jsonify({"msg": str(e)}), 400
 
-@app.route('/products/<id>', methods=['PUT'])
+@app.route('/productos/<id>', methods=['PUT'])
 @jwt_required()
-def update_product(id):
+def actualizar_producto(id):
     current_user = get_jwt_identity()
-    if current_user['role'] != 'admin':
+    if current_user['rol'] != 'admin':
         return jsonify({"msg": "Acceso denegado"}), 403
 
     try:
@@ -177,16 +177,16 @@ def update_product(id):
     except Exception:
         return jsonify({"msg": "Error al actualizar"}), 400
 
-@app.route('/products/<id>', methods=['DELETE'])
+@app.route('/productos/<id>', methods=['DELETE'])
 @jwt_required()
-def delete_product(id):
-    current_user = get_jwt_identity()
-    if current_user['role'] != 'admin':
+def eliminar_producto(id):
+    usuario_act = get_jwt_identity()
+    if usuario_act['rol'] != 'admin':
         return jsonify({"msg": "Acceso denegado"}), 403
 
     try:
-        result = mongo.db.products.delete_one({"_id": ObjectId(id)})
-        if result.deleted_count == 1:
+        resultado = mongo.db.productos.delete_one({"_id": ObjectId(id)})
+        if resultado.deleted_count == 1:
             return jsonify({"msg": "Producto eliminado"}), 200
         return jsonify({"msg": "Producto no encontrado"}), 404
     except:
@@ -198,55 +198,55 @@ def delete_product(id):
 
 @app.route('/buy/<id>', methods=['POST'])
 @jwt_required()
-def buy_product(id):
-    current_user = get_jwt_identity()
+def comprar_productos(id):
+    usuario_act = get_jwt_identity()
     
     if not ObjectId.is_valid(id):
         return jsonify({"msg": "ID inválido"}), 400
 
-    product = mongo.db.products.find_one({"_id": ObjectId(id)})
+    producto = mongo.db.products.find_one({"_id": ObjectId(id)})
     
-    if not product:
+    if not producto:
         return jsonify({"msg": "Producto no encontrado"}), 404
     
-    if product['stock'] < 1:
+    if producto['stock'] < 1:
         return jsonify({"msg": "Sin stock"}), 400
         
     mongo.db.products.update_one({"_id": ObjectId(id)}, {"$inc": {"stock": -1}})
     
     mongo.db.orders.insert_one({
-        "username": current_user['username'],
-        "product_name": product['nombre'],
-        "precio": product['precio'], # Ojo: en tu código original usabas 'price' aquí y 'precio' en productos. Lo he unificado a 'precio' para consistencia con tu Client.
+        "nombre":usuario_act['nombre'],
+        "nombre_producto": producto['nombre'],
+        "precio": producto['precio'], # Ojo: en tu código original usabas 'price' aquí y 'precio' en productos. Lo he unificado a 'precio' para consistencia con tu Client.
         "status": "Completado"
     })
     
-    return jsonify({"msg": f"¡Compra exitosa de {product['nombre']}!"}), 200
+    return jsonify({"msg": f"¡Compra exitosa de {producto['nombre']}!"}), 200
 
 @app.route('/my-orders', methods=['GET'])
 @jwt_required()
-def my_orders():
-    current_user = get_jwt_identity()
+def pedidos():
+    usuario_act = get_jwt_identity()
     orders = []
     # Nota: Asegúrate que al insertar la orden usas 'precio' o 'price' consistentemente. 
     # Aquí busco campos que coincidan con la inserción de arriba.
-    for doc in mongo.db.orders.find({"username": current_user['username']}):
+    for doc in mongo.db.orders.find({"nombre": usuario_act['nombre']}):
         orders.append({
-            "producto": doc['product_name'],
-            "precio": doc.get('precio', doc.get('price')), # Fallback por si tienes datos viejos
+            "producto": doc['nombre_producto'],
+            "precio": doc.get('precio', doc.get('precio')), # Fallback por si tienes datos viejos
             "estado": doc.get('status', 'Completado')
         })
     return jsonify(orders), 200
 
 @app.route('/profile', methods=['GET'])
 @jwt_required()
-def get_profile():
-    # 1. Obtenemos la identidad guardada en el token (username y role)
+def perfil():
+    # 1. Obtenemos la identidad guardada en el token (nombre y rol)
     current_identity = get_jwt_identity()
     
     # 2. Buscamos en la base de datos por si quieres datos extra 
     # o asegurarte de que el usuario sigue existiendo.
-    user = mongo.db.users.find_one({"username": current_identity['username']})
+    user = mongo.db.users.find_one({"nombre": current_identity['nombre']})
     
     if not user:
         return jsonify({"msg": "Usuario no encontrado"}), 404
@@ -254,8 +254,8 @@ def get_profile():
     # 3. Devolvemos la info (¡OJO! Nunca devuelvas la contraseña)
     return jsonify({
         "id": str(user['_id']),
-        "username": user['username'],
-        "role": user['role']
+        "nombre": user['nombre'],
+        "rol": user['rol']
     }), 200
 
 if __name__ == '__main__':

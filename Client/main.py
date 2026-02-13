@@ -6,10 +6,10 @@ TOKEN = None
 CURRENT_ROLE = None  # NUEVA VARIABLE: Guardará si es 'user' o 'admin'
 
 def menu():
-    role_str = f" (Rol: {CURRENT_ROLE})" if CURRENT_ROLE else " (Sin login)"
-    print(f"\n--- Fothel Card's{role_str} ---")
+    rol_str = f" (Rol: {CURRENT_ROLE})" if CURRENT_ROLE else " (Sin login)"
+    print(f"\n--- Fothel Card's{rol_str} ---")
     print("1. Registro")
-    print("2. Login")
+    print("2. Iniciar Sesion")
     print("3. Ver Catálogo (Público)")
     print("4. Comprar Producto (Usuario)")
     print("5. Ver Mis Pedidos (Usuario)")
@@ -19,13 +19,13 @@ def menu():
     print("9. Borrar Producto (Solo Admin)")
     print("0. Salir") # He cambiado el 9 por 0 para que sea más estándar, o usa 10.
 
-def register():
+def registro():
     print("\n--- REGISTRO ---")
-    user = input("Usuario: ")
-    pwd = input("Contraseña: ")
-    role = input("Rol (user/admin): ") 
+    usuario = input("Usuario: ")
+    contr = input("Contraseña: ")
+    rol = input("Rol (user/admin): ") 
     try:
-        res = requests.post(f"{BASE_URL}/register", json={"username": user, "password": pwd, "role": role})
+        res = requests.post(f"{BASE_URL}/registro", json={"nombre": usuario, "contraseña": contr, "rol": rol})
         if res.status_code == 201:
             print(f">> ÉXITO: {res.json().get('msg')}")
         else:
@@ -33,20 +33,20 @@ def register():
     except Exception as e:
         print(f">> ERROR DE CONEXIÓN: {e}")
 
-def login():
+def sesion():
     global TOKEN, CURRENT_ROLE
-    print("\n--- LOGIN ---")
-    user = input("Usuario: ")
-    pwd = input("Contraseña: ")
+    print("\n--- Iniciar Sesion ---")
+    usuario = input("Usuario: ")
+    contr = input("Contraseña: ")
     
     try:
-        res = requests.post(f"{BASE_URL}/login", json={"username": user, "password": pwd})
+        res = requests.post(f"{BASE_URL}/login", json={"nombre": usuario, "contraseña": contr})
         
         if res.status_code == 200:
             data = res.json()
             TOKEN = data.get('access_token')
-            CURRENT_ROLE = data.get('role')  # <--- ASÍ DEBE QUEDAR (sin corchetes ni cosas raras)
-            print(f">> LOGIN EXITOSO. Bienvenido {user} ({CURRENT_ROLE}).")
+            CURRENT_ROLE = data.get('rol')  # <--- ASÍ DEBE QUEDAR (sin corchetes ni cosas raras)
+            print(f">> LOGIN EXITOSO. Bienvenido {usuario} ({CURRENT_ROLE}).")
         else:
             print(f">> ERROR: {res.json().get('msg')}")
     except Exception as e:
@@ -67,7 +67,7 @@ def ver_catalogo():
 
 # --- FUNCIONES DE ADMIN PROTEGIDAS EN EL CLIENTE ---
 
-def add_product():
+def añadir_producto():
     # 1. VALIDACIÓN INMEDIATA DEL ROL
     if CURRENT_ROLE != 'admin':
         print("\n ACCESO DENEGADO: Esta opción es exclusiva para Administradores.")
@@ -95,13 +95,13 @@ def add_product():
     except Exception as e:
         print(f">> ERROR: {e}")
 
-def edit_product():
-    # 1. VALIDACIÓN INMEDIATA DEL ROL
+def editar_producto():
+    
     if CURRENT_ROLE != 'admin':
         print("\n ACCESO DENEGADO: Esta opción es exclusiva para Administradores.")
         return 
 
-    product_id = input("ID del producto a editar: ")
+    producto_id = input("ID del producto a editar: ")
     print("Deja en blanco si no quieres cambiar el valor.")
     nombre = input("Nuevo nombre: ")
     tipo = input("Nuevo tipo: ")
@@ -116,7 +116,7 @@ def edit_product():
     
     headers = {"Authorization": f"Bearer {TOKEN}"}
     try:
-        res = requests.put(f"{BASE_URL}/products/{product_id}", json=data, headers=headers)
+        res = requests.put(f"{BASE_URL}/productos/{producto_id}", json=data, headers=headers)
         if res.status_code == 200:
             print(">> Producto actualizado.")
         else:
@@ -124,16 +124,16 @@ def edit_product():
     except Exception as e:
         print(f">> ERROR: {e}")
 
-def delete_product():
+def eliminar_producto():
     # 1. VALIDACIÓN INMEDIATA DEL ROL
     if CURRENT_ROLE != 'admin':
         print("\n ACCESO DENEGADO: Esta opción es exclusiva para Administradores.")
         return 
 
-    product_id = input("ID del producto a eliminar: ")
+    producto_id = input("ID del producto a eliminar: ")
     headers = {"Authorization": f"Bearer {TOKEN}"}
     try:
-        res = requests.delete(f"{BASE_URL}/products/{product_id}", headers=headers)
+        res = requests.delete(f"{BASE_URL}/productos/{producto_id}", headers=headers)
         if res.status_code == 200:
             print(">> Producto eliminado.")
         else:
@@ -148,10 +148,10 @@ def comprar_producto():
         print(">> ERROR: Inicia sesión primero.")
         return
     
-    product_id = input("Introduce el ID del producto a comprar: ")
+    producto_id = input("Introduce el ID del producto a comprar: ")
     headers = {"Authorization": f"Bearer {TOKEN}"}
     try:
-        res = requests.post(f"{BASE_URL}/buy/{product_id}", headers=headers)
+        res = requests.post(f"{BASE_URL}/comprar/{producto_id}", headers=headers)
         print(f">> {res.json().get('msg')}")
     except Exception as e:
         print(f">> ERROR: {e}")
@@ -187,8 +187,8 @@ def ver_perfil():
             print("\n┌──────────────────────────────┐")
             print("│         MI PERFIL            │")
             print("├──────────────────────────────┤")
-            print(f"│ Usuario: {data['username'].ljust(19)} │")
-            print(f"│ Rol:     {data['role'].ljust(19)} │")
+            print(f"│ Usuario: {data['nombre'].ljust(19)} │")
+            print(f"│ Rol:     {data['rol'].ljust(19)} │")
             print(f"│ ID:      {data['id'].ljust(19)} │")
             print("└──────────────────────────────┘")
         else:
@@ -200,13 +200,13 @@ if __name__ == "__main__":
     while True:
         menu()
         opc = input("Selecciona una opción: ")
-        if opc == '1': register()
-        elif opc == '2': login()
+        if opc == '1': registro()
+        elif opc == '2': sesion()
         elif opc == '3': ver_catalogo()
         elif opc == '4': comprar_producto()
         elif opc == '5': ver_pedidos()
         elif opc == '6': ver_perfil()        
-        elif opc == '7': add_product()       
-        elif opc == '8': edit_product()
-        elif opc == '9': delete_product()
+        elif opc == '7': añadir_producto()       
+        elif opc == '8': editar_producto()
+        elif opc == '9': eliminar_producto()
         elif opc == '0': sys.exit()
