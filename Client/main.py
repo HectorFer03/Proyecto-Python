@@ -40,13 +40,13 @@ def sesion():
     contr = input("Contraseña: ")
     
     try:
-        res = requests.post(f"{BASE_URL}/login", json={"nombre": usuario, "contraseña": contr})
+        res = requests.post(f"{BASE_URL}/sesio", json={"nombre": usuario, "contraseña": contr})
         
         if res.status_code == 200:
             data = res.json()
             TOKEN = data.get('access_token')
             CURRENT_ROLE = data.get('rol')  # <--- ASÍ DEBE QUEDAR (sin corchetes ni cosas raras)
-            print(f">> LOGIN EXITOSO. Bienvenido {usuario} ({CURRENT_ROLE}).")
+            print(f">> Sesion iniciada. Bienvenido {usuario} ({CURRENT_ROLE}).")
         else:
             print(f">> ERROR: {res.json().get('msg')}")
     except Exception as e:
@@ -54,7 +54,7 @@ def sesion():
 
 def ver_catalogo():
     try:
-        res = requests.get(f"{BASE_URL}/products")
+        res = requests.get(f"{BASE_URL}/productos")
         if res.status_code == 200:
             productos = res.json()
             print("\n--- CATÁLOGO ---")
@@ -85,7 +85,7 @@ def añadir_producto():
     
     headers = {"Authorization": f"Bearer {TOKEN}"}
     try:
-        res = requests.post(f"{BASE_URL}/products", 
+        res = requests.post(f"{BASE_URL}/productos", 
                             json={"nombre": nombre, "tipo": tipo, "precio": precio, "stock": stock},
                             headers=headers)
         if res.status_code == 201:

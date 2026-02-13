@@ -4,12 +4,12 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from bson.objectid import ObjectId
 from jsonschema import validate, ValidationError
 # [NUEVO] Importamos las funciones de seguridad de Werkzeug
-from werkzeug.security import generate_contraseña_hash, check_contraseña_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN ---
-app.config["MONGO_URI"] = "mongodb://localhost:27017/collectorvault"
+app.config["MONGO_URI"] = "mongodb://localhost:27017/fothelcards"
 app.config["JWT_SECRET_KEY"] = "super-secreto-coleccionable"
 
 mongo = PyMongo(app)
@@ -43,7 +43,7 @@ def registro():
             return jsonify({"msg": "El usuario ya existe"}), 400
         
         # [CAMBIO] Hasheamos la contraseña antes de guardar
-        hashed_contraseña = generate_contraseña_hash(data['contraseña'])
+        hashed_contraseña = generate_password_hash(data['contraseña'])
 
         mongo.db.users.insert_one({
             "nombre": data['nombre'],
@@ -79,7 +79,7 @@ def sesion():
         
         # [CAMBIO] Usamos check_contraseña_hash para comparar
         # Primero verificamos si 'user' existe, luego la contraseña
-        if user and check_contraseña_hash(user['contraseña'], data['contraseña']):
+        if user and check_password_hash(user['contraseña'], data['contraseña']):
             access_token = create_access_token(identity={"nombre": user['nombre'], "rol": user['rol']})
             return jsonify({'access_token': access_token, 'rol': user['rol']}), 200
             
