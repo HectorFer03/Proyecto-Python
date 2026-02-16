@@ -1,4 +1,4 @@
 flask
-flask-pymongo
+flask-sqlalchemy
 flask-jwt-extended
-dnspython
+werkzeug
