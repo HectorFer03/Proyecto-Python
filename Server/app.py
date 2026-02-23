@@ -3,9 +3,9 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Importaciones de nuestros ficheros en español
-from configuracion import Configuracion
+from config import Configuracion
 from extensiones import db, jwt
-from modelos import Rol 
+from Modelos import Rol 
 from repositorios import RepositorioUsuario, RepositorioProducto, RepositorioPedido
 
 app = Flask(__name__)

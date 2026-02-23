@@ -1,19 +1,25 @@
 from extensiones import db
-# Importamos las clases con sus nombres en español
-from modelos import Usuario, Producto, Pedido, Rol
+from Modelos import Usuario, Producto, Pedido, Rol, Opinion
+
+class RepositorioRol:
+    def obtener_por_nombre(self, nombre):
+        return Rol.query.filter_by(nombre=nombre).first()
 
 class RepositorioUsuario:
+    def __init__(self):
+        self.repo_rol = RepositorioRol()
+
     def buscar_por_nombre(self, nombre):
-        # 'nombre' es la columna en la BD (antes username)
         return Usuario.query.filter_by(nombre=nombre).first()
 
+    def buscar_por_id(self, id_usuario):
+        return Usuario.query.get(id_usuario)
+
     def crear(self, nombre, contrasena_hash, nombre_rol):
-        # Buscamos el rol en la BD
-        rol_obj = Rol.query.filter_by(nombre=nombre_rol).first()
-        
-        # Si no existe (seguridad), asignamos 'user' por defecto
+        # Usamos el repositorio de roles para no mezclar lógica
+        rol_obj = self.repo_rol.obtener_por_nombre(nombre_rol)
         if not rol_obj:
-            rol_obj = Rol.query.filter_by(nombre='user').first()
+            rol_obj = self.repo_rol.obtener_por_nombre('user')
             
         nuevo_usuario = Usuario(nombre=nombre, contrasena_hash=contrasena_hash, rol=rol_obj)
         db.session.add(nuevo_usuario)
@@ -40,7 +46,8 @@ class RepositorioProducto:
 
     def actualizar(self, id_producto, datos):
         producto = self.obtener_por_id(id_producto)
-        if not producto: return None
+        if not producto: 
+            return None
         
         if 'nombre' in datos: producto.nombre = datos['nombre']
         if 'tipo' in datos: producto.tipo = datos['tipo']
@@ -60,14 +67,13 @@ class RepositorioProducto:
 
 class RepositorioPedido:
     def crear_pedido(self, objeto_usuario, objeto_producto):
-        # 1. Crear el registro del pedido
         nuevo_pedido = Pedido(
             usuario_id=objeto_usuario.id,
             nombre_producto=objeto_producto.nombre,
             precio=objeto_producto.precio,
             estado="Completado"
         )
-        # 2. Restar stock (Lógica de negocio)
+        # Lógica de negocio mediante ORM
         objeto_producto.stock -= 1
         
         db.session.add(nuevo_pedido)
@@ -76,3 +82,15 @@ class RepositorioPedido:
     
     def obtener_por_usuario(self, usuario_id):
         return Pedido.query.filter_by(usuario_id=usuario_id).all()
+
+class RepositorioOpinion:
+    def crear_opinion(self, usuario_id, producto_id, comentario, valoracion):
+        nueva_opinion = Opinion(
+            usuario_id=usuario_id,
+            producto_id=producto_id,
+            comentario=comentario,
+            valoracion=valoracion
+        )
+        db.session.add(nueva_opinion)
+        db.session.commit()
+        return nueva_opinion
